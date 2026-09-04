@@ -8,52 +8,225 @@ Whether you are a **non-technical manager**, a **student beginner**, or a **seni
 
 ## 🏛️ High-Level System Architecture
 
-```mermaid
-flowchart TD
-    User["👨‍💻 DevOps / SRE Engineer"] -->|1. Pick Cluster Card & Click Investigate| UI["⚡ Next.js 14 Frontend UI - Port 3000"]
-
-    subgraph Security_Layer ["🔐 1. Identity & Security"]
-        Cognito["☁️ AWS Cognito User Pool\n(Local Mock / Production JWT Auth)"]
-        UI <-->|2. Verify Session & Pass Bearer Token| Cognito
-    end
-
-    subgraph Backend_Layer ["⚙️ 2. Core API Engine"]
-        FastAPI["🚀 FastAPI Backend Server - Port 8000"]
-        UI -->|3. POST /investigate & Realtime SSE Stream| FastAPI
-    end
-
-    subgraph Collector_Layer ["🔎 3. Kubernetes Collector"]
-        Kubectl["☸️ Kubectl Inspector - 8s Timeout"]
-        K8sClusters["☸️ Target Clusters - Kind / Minikube / AWS EKS"]
-        FastAPI -->|4. Non-blocking Async Subprocess| Kubectl
-        Kubectl <-->|5. Fetch Exit Codes, Logs & Events| K8sClusters
-    end
-
-    subgraph AI_Layer ["🤖 4. AI Reasoning Engine"]
-        Bedrock["☁️ AWS Bedrock Runtime - Qwen3 Coder Next"]
-        FastAPI -->|6. Send Diagnostic Evidence Payload| Bedrock
-    end
-
-    subgraph Storage_Layer ["💾 5. Persistence & Audit"]
-        DynamoDB["⚡ AWS DynamoDB Table - K8sAgentInvestigations"]
-        FastAPI -->|7. Persist Investigation Audit Log| DynamoDB
-    end
-
-    Bedrock -->|8. Structured SRE Diagnosis & Fix Command| FastAPI
-    FastAPI -->|9. Stream SSE Updates & Final Diagnosis| UI
-    UI -->|10. Display Warning Banner & Copyable Fix| User
+```text
+┌────────────────────────────────────────────────────────────┐
+│                    Kubernetes Cluster                     │
+│                                                            │
+│  Pods | Deployments | Services | Events | Logs            │
+│  Target Clusters: Kind | Minikube | AWS EKS               │
+│                                                            │
+│  This is where failures happen and evidence exists         │
+└────────────────────────────────────────────────────────────┘
+                              │
+                              │ kubectl CLI / Kubernetes API
+                              ▼
+┌────────────────────────────────────────────────────────────┐
+│                  Investigation Layer                      │
+│                                                            │
+│ Responsibility:                                            │
+│ - Connect to target Kubernetes cluster                     │
+│ - Collect troubleshooting signals (non-blocking 8s timeout)│
+│ - Gather diagnostic evidence payload                       │
+│                                                            │
+│ Components:                                                │
+│                                                            │
+│  1. Pod Inspector                                          │
+│     - Check pod health & restart counts                    │
+│     - Detect CrashLoopBackOff & Error states               │
+│                                                            │
+│  2. Logs Collector                                         │
+│     - Read container stdout & stderr logs                  │
+│     - Capture application stack traces                     │
+│                                                            │
+│  3. Events Analyzer                                        │
+│     - Read Kubernetes warning events                       │
+│     - Detect scheduling, volume, & image pull failures     │
+│                                                            │
+│  4. Deployment Inspector                                   │
+│     - Inspect deployment rollout health                    │
+│     - Verify replica availability & spec integrity         │
+│                                                            │
+│  5. Network Inspector                                      │
+│     - Check services & active endpoints                    │
+│     - Validate label selectors & DNS connectivity          │
+└────────────────────────────────────────────────────────────┘
+                              │
+                              │ Structured Diagnostic Evidence Payload
+                              ▼
+┌────────────────────────────────────────────────────────────┐
+│         AI Kubernetes Agent (AWS Bedrock Runtime)          │
+│                                                            │
+│ Responsibility:                                            │
+│ - Understand Kubernetes failure patterns                   │
+│ - Correlate logs + events + pod state                      │
+│ - Identify root cause using SRE domain knowledge           │
+│ - Recommend copyable kubectl fixes & prevention steps      │
+│                                                            │
+│ Components:                                                │
+│                                                            │
+│  1. Diagnostic Payload Synthesizer                         │
+│     - Format evidence into structured SRE AI prompt        │
+│                                                            │
+│  2. LLM Reasoning Layer                                    │
+│     - AWS Bedrock Converse API integration                 │
+│     - SRE AI Model (qwen.qwen3-coder-next)                 │
+│                                                            │
+│  3. Root Cause Analyzer                                    │
+│     - Isolate primary failure & multi-signal correlations  │
+│                                                            │
+│  4. Fix Recommendation Engine                              │
+│     - Generate copyable kubectl fix commands               │
+│     - Recommend YAML/configuration corrections             │
+│                                                            │
+│  5. Confidence Scoring                                     │
+│     - Calculate percentage diagnostic confidence           │
+└────────────────────────────────────────────────────────────┘
+                              │
+                              │ Structured SRE Diagnosis JSON
+                              ▼
+┌────────────────────────────────────────────────────────────┐
+│              Core API Backend (FastAPI Server)             │
+│                                                            │
+│ Responsibility:                                            │
+│ - SRE Authentication (AWS Cognito / Local JWT mock)        │
+│ - API Orchestration (POST /investigate endpoint)           │
+│ - Realtime SSE progress streaming                          │
+│ - Audit persistence (AWS DynamoDB Table)                   │
+│                                                            │
+│ Components:                                                │
+│                                                            │
+│  1. Identity & Security Layer                              │
+│     - AWS Cognito User Pool / JWT validation               │
+│                                                            │
+│  2. API Orchestration Engine                               │
+│     - Coordinate inspector, AI reasoning, & persistence    │
+│                                                            │
+│  3. Real-time Progress Streamer                            │
+│     - Server-Sent Events (SSE) progress push             │
+│                                                            │
+│  4. Audit History Storage                                  │
+│     - Save past reports to AWS DynamoDB                    │
+└────────────────────────────────────────────────────────────┘
+                              │
+                              │ SSE Stream Updates & Final API Response
+                              ▼
+┌────────────────────────────────────────────────────────────┐
+│             Frontend Dashboard (Next.js 14 UI)             │
+│                                                            │
+│ Responsibility:                                            │
+│ - Select target cluster card & trigger investigation       │
+│ - Display real-time step progress bar                      │
+│ - Render root cause warning banner                         │
+│ - Provide copyable kubectl fix commands                    │
+│ - View audit history logs                                  │
+│                                                            │
+│ UI Example:                                                │
+│  ✓ Incident: Payment Service Failure (CrashLoopBackOff)    │
+│  ✓ Live Steps: Pods Checked ➔ Logs Read ➔ AI Analyzed      │
+│  ✓ Diagnosis: Missing DATABASE_URL env var                 │
+│  ✓ Copyable Fix: kubectl set env deployment/...            │
+└────────────────────────────────────────────────────────────┘
+                              │
+                              │ Deployment Targets
+                              ▼
+┌────────────────────────────────────────────────────────────┐
+│                Deployment & Infrastructure                 │
+│                                                            │
+│ Responsibility:                                            │
+│ - Containerize app services                                │
+│ - Host backend API & frontend UI                           │
+│                                                            │
+│ Output / Environment Options:                              │
+│  - Local Dev: Docker Compose (docker compose up)           │
+│  - AWS Cloud: App Runner / ECS (Backend) + Amplify         │
+└────────────────────────────────────────────────────────────┘
 ```
 
 ### 🏛️ Architecture Layer Breakdown
 
 | Layer | Component | Core Responsibility | Key Technology |
 | :--- | :--- | :--- | :--- |
-| **1. UI & Access** | **Next.js 14 Dashboard** | Interactive tile cards to select clusters, view streaming SSE step bars, and copy fix commands. | Next.js 14, React, Tailwind CSS |
-| **2. Security** | **AWS Cognito** | Manages SRE Engineer authentication, OAuth 2.0 tokens, and local mock testing mode. | AWS Cognito User Pool, JWT Tokens |
-| **3. Core Engine** | **FastAPI Server** | Coordinates evidence collection, streams real-time SSE updates, and invokes AI reasoning pipeline. | FastAPI, Python 3.9+, Asyncio |
-| **4. Infrastructure** | **Kubectl Collector** | Non-blocking execution of `kubectl` commands with 8s timeouts to collect pods, error logs, and events. | Subprocess Exec, Kubectl CLI |
-| **5. AI Brain** | **AWS Bedrock Runtime** | SRE AI model (`qwen.qwen3-coder-next`) that analyzes evidence payloads and generates structured root cause diagnoses. | AWS Bedrock, Boto3 Converse API |
-| **6. Audit Storage** | **AWS DynamoDB** | Stores historical investigation reports with timestamps, confidence scores, and kubectl commands for post-mortem analysis. | AWS DynamoDB Table |
+| **1. Kubernetes Cluster** | **Target Infrastructure** | Running application workloads, generating logs, events, and container exit codes. | Kind, Minikube, AWS EKS |
+| **2. Collector / Inspector** | **Kubectl Collector** | Non-blocking execution of `kubectl` commands with 8s timeouts to collect pod, log, event, and network states. | Python Subprocess, Kubectl CLI |
+| **3. AI Reasoning Brain** | **AWS Bedrock Runtime** | SRE AI model (`qwen.qwen3-coder-next`) that synthesizes raw evidence into root causes and copyable fixes. | AWS Bedrock, Boto3 Converse API |
+| **4. Core API Engine** | **FastAPI Backend Server** | User authentication, investigation orchestration, streaming real-time SSE updates, and DB persistence. | FastAPI, Python 3.9+, Asyncio |
+| **5. Identity & Security** | **AWS Cognito** | Manages SRE Engineer authentication, JWT token verification, and local mock testing mode. | AWS Cognito User Pool, JWT Tokens |
+| **6. Audit Storage** | **AWS DynamoDB** | Stores historical investigation reports with timestamps, confidence scores, and fix commands. | AWS DynamoDB Table |
+| **7. Dashboard UI** | **Next.js 14 Frontend** | Interactive cluster cards, streaming progress bar, root cause warning banners, and past incident logs. | Next.js 14, React, Tailwind CSS |
+
+---
+
+## 🔄 End-to-End Workflow
+
+```text
+User clicks "Run Investigation" on Cluster Card
+                │
+                ▼
+Next.js 14 Frontend sends API Request (with Bearer JWT Token)
+                │
+                ▼
+FastAPI Backend (Orchestration Layer)
+                │
+                ├── Authenticate User (AWS Cognito / Local Mock)
+                │
+                ▼
+Kubernetes Investigation Layer
+                │
+                ├── 1. Pod Inspector (Check Pod status & restart counts)
+                ├── 2. Logs Collector (Read container stdout/stderr)
+                ├── 3. Events Analyzer (Scan K8s warning events)
+                ├── 4. Deployment Inspector (Verify rollout health)
+                └── 5. Network Inspector (Check services & selectors)
+                │
+                ▼
+Diagnostic Evidence Payload Generated
+                │
+                ▼
+AI Kubernetes Agent (AWS Bedrock Runtime)
+                │
+                ▼
+LLM Reasoning & Synthesis (Qwen3 Coder Next via Boto3 Converse)
+                │
+                ▼
+Root Cause Analysis & Structured SRE Fix Generated
+                │
+                ├── Save Audit Record (AWS DynamoDB Table)
+                │
+                ├── Stream Realtime Progress Updates (SSE Stream)
+                │
+                ▼
+Frontend Receives SSE Result Stream
+                │
+                ▼
+User Sees Red/Amber Diagnosis Banner & Copyable Fix Command
+```
+
+## 🚨 Example Failure Flow
+
+```text
+Issue:
+Payment service unavailable / Pod failing in production
+
+Agent Investigation:
+✓ Pod Status Checked (Detected CrashLoopBackOff)
+✓ Logs Collected ("Error: DATABASE_URL environment variable missing")
+✓ Warning Events Analyzed (Back-off 5m0s restarting failed container)
+
+Detected Problem:
+CrashLoopBackOff
+
+Root Cause:
+DATABASE_URL environment variable missing or empty in pod deployment manifest
+
+Confidence:
+96%
+
+Suggested Fix:
+kubectl set env deployment/payment-service DATABASE_URL=postgres://db.internal:5432/paymentdb
+
+Prevention:
+Add mandatory env validation in container entrypoint and update helm chart values
+```
 
 ---
 
@@ -90,32 +263,14 @@ Think of our app like a car:
 
 ---
 
-## 🏗️ 2. How Everything Connects (Data Flow Diagram)
+## 🏗️ 2. How Everything Connects (Data Flow & Signals)
 
-Here is a visual map showing how data flows step-by-step:
+The investigation pipeline connects the user, backend services, AI models, and database in 4 main steps:
 
-```mermaid
-flowchart TD
-    User["👨‍💻 You - DevOps Engineer"] -->|1. Click Run Investigation| UI["🖥️ Next.js 14 Frontend UI"]
-    UI -->|2. Request Live SSE Stream| FastAPI["⚙️ FastAPI Backend Server"]
-    
-    subgraph K8s_Collector ["🔎 1. Kubernetes Inspector"]
-        FastAPI -->|3. Run fast kubectl commands| K8s["☸️ Kubernetes Cluster - Kind / Minikube / EKS"]
-        K8s -->|Gather Pod States, Error Logs, Events| Evidence["📋 Diagnostic Evidence Payload"]
-    end
-
-    subgraph AI_Engine ["🤖 2. AWS Bedrock AI Brain"]
-        Evidence -->|4. Send Evidence Payload| Bedrock["☁️ AWS Bedrock Qwen3 Coder Next"]
-        Bedrock -->|Return JSON Diagnosis & Fix| AI_Result["💡 SRE Root Cause & Fix"]
-    end
-
-    subgraph Storage ["💾 3. AWS DynamoDB History"]
-        AI_Result -->|5. Save Audit Record| DynamoDB["⚡ AWS DynamoDB Table"]
-    end
-
-    AI_Result -->|6. Stream Realtime Updates| UI
-    UI -->|7. Display Red Warning Banner & Fix Command| User
-```
+1. **Trigger & Authorization**: User clicks **Run Investigation** on the Next.js Frontend Dashboard. The request is authorized via JWT Bearer Token (AWS Cognito / local mock) and sent to the FastAPI backend (`POST /api/v1/investigate`).
+2. **Kubernetes Signal Gathering**: The FastAPI backend executes non-blocking `kubectl` subprocess calls with an 8-second timeout across 5 inspection dimensions (Pods, Container Logs, Warning Events, Deployment Rollouts, Network Services).
+3. **AI Reasoning Engine**: The collected diagnostic evidence payload is formatted into an SRE prompt and sent to **AWS Bedrock Runtime** (`qwen.qwen3-coder-next`). The AI correlates all signals and generates a structured root cause diagnosis, confidence score, and copyable `kubectl` fix command.
+4. **Realtime SSE Streaming & Persistence**: The diagnosis is saved into **AWS DynamoDB** (`K8sAgentInvestigations`) for audit history, while real-time progress steps and the final diagnosis banner are streamed live back to the Frontend UI via Server-Sent Events (SSE).
 
 ---
 
