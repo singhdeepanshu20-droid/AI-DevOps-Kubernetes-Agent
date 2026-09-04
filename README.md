@@ -9,47 +9,39 @@ Whether you are a **non-technical manager**, a **student beginner**, or a **seni
 ## 🏛️ High-Level System Architecture
 
 ```mermaid
-flowchart LR
-    subgraph UI_Layer ["🌐 1. UI & ACCESS LAYER"]
-        User["👨‍💻 SRE Engineer / User"] -->|1. Pick Cluster & Investigate| UI["⚡ Next.js 14 Dashboard\n(Port 3000)"]
+flowchart TD
+    User["👨‍💻 DevOps / SRE Engineer"] -->|1. Pick Cluster Card & Click Investigate| UI["⚡ Next.js 14 Frontend UI - Port 3000"]
+
+    subgraph Security_Layer ["🔐 1. Identity & Security"]
+        Cognito["☁️ AWS Cognito User Pool\n(Local Mock / Production JWT Auth)"]
+        UI <-->|2. Verify Session & Pass Bearer Token| Cognito
     end
 
-    subgraph Auth_Layer ["🔐 2. SECURITY LAYER"]
-        Cognito["☁️ AWS Cognito User Pool\n(OAuth 2.0 / JWT Auth)"]
-        UI <-->|2. Verify Session & Bearer Token| Cognito
+    subgraph Backend_Layer ["⚙️ 2. Core API Engine"]
+        FastAPI["🚀 FastAPI Backend Server - Port 8000"]
+        UI -->|3. POST /investigate & Realtime SSE Stream| FastAPI
     end
 
-    subgraph Backend_Layer ["⚙️ 3. CORE ENGINE LAYER"]
-        API["🚀 FastAPI Backend Server\n(Port 8000)"]
-        UI -->|3. SSE Progress & REST Request| API
+    subgraph Collector_Layer ["🔎 3. Kubernetes Collector"]
+        Kubectl["☸️ Kubectl Inspector - 8s Timeout"]
+        K8sClusters["☸️ Target Clusters - Kind / Minikube / AWS EKS"]
+        FastAPI -->|4. Non-blocking Async Subprocess| Kubectl
+        Kubectl <-->|5. Fetch Exit Codes, Logs & Events| K8sClusters
     end
 
-    subgraph K8s_Layer ["🔎 4. KUBERNETES LAYER"]
-        Inspector["☸️ Kubectl Collector\n(8s Execution Timeout)"]
-        K8sCluster["☸️ Target Clusters\n(Kind / Minikube / EKS)"]
-        API -->|4. Async Subprocess Call| Inspector
-        Inspector <-->|5. Inspect Pods, Logs & Events| K8sCluster
+    subgraph AI_Layer ["🤖 4. AI Reasoning Engine"]
+        Bedrock["☁️ AWS Bedrock Runtime - Qwen3 Coder Next"]
+        FastAPI -->|6. Send Diagnostic Evidence Payload| Bedrock
     end
 
-    subgraph AI_Layer ["🤖 5. AI REASONING LAYER"]
-        Bedrock["☁️ AWS Bedrock Runtime\n(Qwen3 Coder Next Model)"]
-        API -->|6. Send Evidence Payload| Bedrock
+    subgraph Storage_Layer ["💾 5. Persistence & Audit"]
+        DynamoDB["⚡ AWS DynamoDB Table - K8sAgentInvestigations"]
+        FastAPI -->|7. Persist Investigation Audit Log| DynamoDB
     end
 
-    subgraph Storage_Layer ["💾 6. AUDIT & STORAGE LAYER"]
-        DynamoDB["⚡ AWS DynamoDB Table\n(K8sAgentInvestigations)"]
-        API -->|7. Save Audit Record| DynamoDB
-    end
-
-    Bedrock -->|8. Structured SRE Diagnosis| API
-    API -->|9. Stream Live Diagnosis Result| UI
-
-    style UI_Layer fill:#0f172a,stroke:#38bdf8,stroke-width:2px,color:#fff
-    style Auth_Layer fill:#1e1b4b,stroke:#818cf8,stroke-width:2px,color:#fff
-    style Backend_Layer fill:#022c22,stroke:#34d399,stroke-width:2px,color:#fff
-    style K8s_Layer fill:#14532d,stroke:#4ade80,stroke-width:2px,color:#fff
-    style AI_Layer fill:#312e81,stroke:#c084fc,stroke-width:2px,color:#fff
-    style Storage_Layer fill:#451a03,stroke:#fb923c,stroke-width:2px,color:#fff
+    Bedrock -->|8. Structured SRE Diagnosis & Fix Command| FastAPI
+    FastAPI -->|9. Stream SSE Updates & Final Diagnosis| UI
+    UI -->|10. Display Warning Banner & Copyable Fix| User
 ```
 
 ### 🏛️ Architecture Layer Breakdown
@@ -311,11 +303,72 @@ Now open `http://localhost:3000`, select your cluster card (e.g., `kind-kubernet
 
 ---
 
-## 🧹 Cleanup Test Pods
-When finished testing, clean up test resources:
+## 🧹 8. Complete Project Cleanup Guide (Local & AWS)
+
+When you are finished testing or want to tear down resources, follow these cleanup steps for local and AWS environments:
+
+### 1. 🐳 Local Docker & Docker Compose Cleanup
+If running via Docker Compose:
+```bash
+# Stop all containers, networks, and remove volumes
+docker compose down -v
+
+# (Optional) Clean up unused Docker images
+docker system prune -f
+```
+
+---
+
+### 2. 💻 Local Development Process Cleanup (Python + Node.js)
+If running servers directly in your terminal:
+```bash
+# Stop FastAPI Backend (Kill process on port 8000)
+lsof -ti :8000 | xargs kill -9
+
+# Stop Next.js Frontend (Kill process on port 3000)
+lsof -ti :3000 | xargs kill -9
+```
+
+---
+
+### 3. ☸️ Local Kubernetes Test Pods Cleanup
+Remove test failure manifests from your local cluster (`Kind` / `Minikube`):
 ```bash
 kubectl delete -f k8s_test_scenarios/01-crashloopbackoff.yaml
 kubectl delete -f k8s_test_scenarios/02-imagepullbackoff.yaml
 kubectl delete -f k8s_test_scenarios/03-oomkilled.yaml
 kubectl delete -f k8s_test_scenarios/04-service-selector-mismatch.yaml
+
+# Delete any manual test pods
+kubectl delete pod nginx-crash nginx-imagepullbackoff --ignore-not-found
+```
+
+---
+
+### 4. ☁️ AWS Cloud Infrastructure Teardown
+
+If you deployed resources to AWS, run these commands to avoid unnecessary AWS costs:
+
+#### A. Delete AWS DynamoDB Table
+```bash
+aws dynamodb delete-table --table-name K8sAgentInvestigations --region ap-southeast-2
+```
+
+#### B. Delete AWS ECR Backend Repository & Images
+```bash
+aws ecr delete-repository --repository-name k8s-agent-backend --region ap-southeast-2 --force
+```
+
+#### C. Delete AWS Cognito User Pool
+```bash
+# List User Pools to find YOUR_USER_POOL_ID
+aws cognito-idp list-user-pools --max-results 10 --region ap-southeast-2
+
+# Delete Cognito User Pool
+aws cognito-idp delete-user-pool --user-pool-id YOUR_USER_POOL_ID --region ap-southeast-2
+```
+
+#### D. Delete AWS EKS Cluster (If created for testing)
+```bash
+aws eks delete-cluster --name eks-cluster --region ap-southeast-2
 ```
