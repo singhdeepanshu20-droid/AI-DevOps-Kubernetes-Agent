@@ -6,6 +6,62 @@ Whether you are a **non-technical manager**, a **student beginner**, or a **seni
 
 ---
 
+## 🏛️ High-Level System Architecture
+
+```mermaid
+graph TB
+    subgraph Client_Layer ["🌐 Client & UI Layer (User Interface)"]
+        Browser["💻 Web Browser (DevOps / SRE Engineer)"]
+        NextJS["⚡ Next.js 14 Frontend UI (Port 3000)\n• Cluster Tile Selector\n• Live SSE Progress Tracker\n• Root Cause & Fix Card"]
+        Browser <-->|HTTP / React UI| NextJS
+    end
+
+    subgraph Auth_Layer ["🔐 Security & Identity Layer"]
+        Cognito["☁️ AWS Cognito User Pool\n• OAuth 2.0 / JWT Auth Tokens\n• Local Mock Mode vs Prod Auth"]
+        NextJS <-->|Bearer JWT Token| Cognito
+    end
+
+    subgraph API_Layer ["⚙️ Application & Service Layer"]
+        FastAPI["🚀 FastAPI Backend Server (Port 8000)\n• CORS & SSE Event Streaming\n• Route Handler & Agent Service"]
+        NextJS <-->|HTTP REST & SSE Stream| FastAPI
+    end
+
+    subgraph Collector_Layer ["🔎 Kubernetes Infrastructure Layer"]
+        Kubectl["☸️ Kubectl Evidence Collector\n• Pod Statuses & Exit Codes\n• Error Log Tailing\n• Warning Events & Services"]
+        FastAPI <-->|Subprocess Async Exec (8s Timeout)| Kubectl
+        Kubectl <-->|Read State| K8sClusters["☸️ K8s Clusters\n(Kind / Minikube / AWS EKS)"]
+    end
+
+    subgraph AI_Engine_Layer ["🤖 AI Reasoning Engine Layer"]
+        Bedrock["☁️ AWS Bedrock Runtime\n(Qwen3 Coder Next Model)\n• SRE Root Cause Reasoning\n• Step-by-Step Fix Generation"]
+        OpenRouter["🔄 OpenRouter / Rule Fallback\n• Secondary Failover Engine"]
+        FastAPI -->|Boto3 Converse API| Bedrock
+        FastAPI -.->|Failover Fallback| OpenRouter
+    end
+
+    subgraph Database_Layer ["💾 Persistence & Audit Layer"]
+        DynamoDB[("⚡ AWS DynamoDB Table\n(K8sAgentInvestigations)\n• Historical Audit Log\n• Root Causes & Timestamps")]
+        FastAPI -->|Boto3 DynamoDB Client| DynamoDB
+    end
+
+    style Client_Layer fill:#1e293b,stroke:#3b82f6,stroke-width:2px,color:#fff
+    style Auth_Layer fill:#1e1b4b,stroke:#818cf8,stroke-width:2px,color:#fff
+    style API_Layer fill:#0f172a,stroke:#06b6d4,stroke-width:2px,color:#fff
+    style Collector_Layer fill:#14532d,stroke:#22c55e,stroke-width:2px,color:#fff
+    style AI_Engine_Layer fill:#312e81,stroke:#a855f7,stroke-width:2px,color:#fff
+    style Database_Layer fill:#451a03,stroke:#f97316,stroke-width:2px,color:#fff
+```
+
+### Architecture Layer Breakdown:
+1. **🌐 Client & UI Layer (Next.js 14)**: Responsive glassmorphic frontend built with Tailwind CSS, offering cluster selection cards, streaming progress bars, and root cause diagnosis cards.
+2. **🔐 Security & Identity Layer (AWS Cognito)**: Handles authentication, session tokens, and access control. Supports Local Mocking for dev testing and real Cognito User Pools for production.
+3. **⚙️ Application & Service Layer (FastAPI)**: High-performance Python backend coordinating evidence collection, SSE progress streaming, and AI pipeline orchestration.
+4. **🔎 Kubernetes Infrastructure Layer**: Non-blocking `kubectl` execution gathering container logs, exit codes, deployment conditions, and warning events across target clusters (`Kind`, `Minikube`, `AWS EKS`).
+5. **🤖 AI Reasoning Engine Layer**: AWS Bedrock Runtime (`qwen.qwen3-coder-next`) acting as a Senior SRE Engineer to analyze evidence and output structured JSON fixes.
+6. **💾 Persistence & Audit Layer (AWS DynamoDB)**: Stores investigation audit logs (`K8sAgentInvestigations`) for tracking historical resolution times and recurring issues.
+
+---
+
 ## 💡 What is this project? (The 1-Minute Story)
 
 Imagine a huge factory with **hundreds of robots** (containers in Kubernetes). Every now and then, a robot stops working:
@@ -39,7 +95,7 @@ Think of our app like a car:
 
 ---
 
-## 🏗️ 2. How Everything Connects (Flow Diagram)
+## 🏗️ 2. How Everything Connects (Data Flow Diagram)
 
 Here is a visual map showing how data flows step-by-step:
 
