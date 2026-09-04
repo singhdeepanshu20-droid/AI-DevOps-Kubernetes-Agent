@@ -9,56 +9,59 @@ Whether you are a **non-technical manager**, a **student beginner**, or a **seni
 ## 🏛️ High-Level System Architecture
 
 ```mermaid
-graph TB
-    subgraph Client_Layer ["🌐 Client & UI Layer"]
-        Browser["💻 Web Browser - DevOps / SRE Engineer"]
-        NextJS["⚡ Next.js 14 Frontend UI - Port 3000"]
-        Browser <--> NextJS
+flowchart LR
+    subgraph UI_Layer ["🌐 1. UI & ACCESS LAYER"]
+        User["👨‍💻 SRE Engineer / User"] -->|1. Pick Cluster & Investigate| UI["⚡ Next.js 14 Dashboard\n(Port 3000)"]
     end
 
-    subgraph Auth_Layer ["🔐 Security & Identity Layer"]
-        Cognito["☁️ AWS Cognito User Pool"]
-        NextJS <--> Cognito
+    subgraph Auth_Layer ["🔐 2. SECURITY LAYER"]
+        Cognito["☁️ AWS Cognito User Pool\n(OAuth 2.0 / JWT Auth)"]
+        UI <-->|2. Verify Session & Bearer Token| Cognito
     end
 
-    subgraph API_Layer ["⚙️ Application Layer"]
-        FastAPI["🚀 FastAPI Backend Server - Port 8000"]
-        NextJS <--> FastAPI
+    subgraph Backend_Layer ["⚙️ 3. CORE ENGINE LAYER"]
+        API["🚀 FastAPI Backend Server\n(Port 8000)"]
+        UI -->|3. SSE Progress & REST Request| API
     end
 
-    subgraph Collector_Layer ["🔎 Kubernetes Infrastructure Layer"]
-        Kubectl["☸️ Kubectl Evidence Collector"]
-        FastAPI <--> Kubectl
-        Kubectl <--> K8sClusters["☸️ K8s Clusters - Kind / Minikube / AWS EKS"]
+    subgraph K8s_Layer ["🔎 4. KUBERNETES LAYER"]
+        Inspector["☸️ Kubectl Collector\n(8s Execution Timeout)"]
+        K8sCluster["☸️ Target Clusters\n(Kind / Minikube / EKS)"]
+        API -->|4. Async Subprocess Call| Inspector
+        Inspector <-->|5. Inspect Pods, Logs & Events| K8sCluster
     end
 
-    subgraph AI_Engine_Layer ["🤖 AI Reasoning Engine Layer"]
-        Bedrock["☁️ AWS Bedrock Runtime - Qwen3 Coder Next"]
-        OpenRouter["🔄 OpenRouter / Rule Fallback Engine"]
-        FastAPI --> Bedrock
-        FastAPI -.-> OpenRouter
+    subgraph AI_Layer ["🤖 5. AI REASONING LAYER"]
+        Bedrock["☁️ AWS Bedrock Runtime\n(Qwen3 Coder Next Model)"]
+        API -->|6. Send Evidence Payload| Bedrock
     end
 
-    subgraph Database_Layer ["💾 Persistence Layer"]
-        DynamoDB["⚡ AWS DynamoDB Table - K8sAgentInvestigations"]
-        FastAPI --> DynamoDB
+    subgraph Storage_Layer ["💾 6. AUDIT & STORAGE LAYER"]
+        DynamoDB["⚡ AWS DynamoDB Table\n(K8sAgentInvestigations)"]
+        API -->|7. Save Audit Record| DynamoDB
     end
 
-    style Client_Layer fill:#1e293b,stroke:#3b82f6,stroke-width:2px,color:#fff
+    Bedrock -->|8. Structured SRE Diagnosis| API
+    API -->|9. Stream Live Diagnosis Result| UI
+
+    style UI_Layer fill:#0f172a,stroke:#38bdf8,stroke-width:2px,color:#fff
     style Auth_Layer fill:#1e1b4b,stroke:#818cf8,stroke-width:2px,color:#fff
-    style API_Layer fill:#0f172a,stroke:#06b6d4,stroke-width:2px,color:#fff
-    style Collector_Layer fill:#14532d,stroke:#22c55e,stroke-width:2px,color:#fff
-    style AI_Engine_Layer fill:#312e81,stroke:#a855f7,stroke-width:2px,color:#fff
-    style Database_Layer fill:#451a03,stroke:#f97316,stroke-width:2px,color:#fff
+    style Backend_Layer fill:#022c22,stroke:#34d399,stroke-width:2px,color:#fff
+    style K8s_Layer fill:#14532d,stroke:#4ade80,stroke-width:2px,color:#fff
+    style AI_Layer fill:#312e81,stroke:#c084fc,stroke-width:2px,color:#fff
+    style Storage_Layer fill:#451a03,stroke:#fb923c,stroke-width:2px,color:#fff
 ```
 
-### Architecture Layer Breakdown:
-1. **🌐 Client & UI Layer (Next.js 14)**: Responsive glassmorphic frontend built with Tailwind CSS, offering cluster selection cards, streaming progress bars, and root cause diagnosis cards.
-2. **🔐 Security & Identity Layer (AWS Cognito)**: Handles authentication, session tokens, and access control. Supports Local Mocking for dev testing and real Cognito User Pools for production.
-3. **⚙️ Application & Service Layer (FastAPI)**: High-performance Python backend coordinating evidence collection, SSE progress streaming, and AI pipeline orchestration.
-4. **🔎 Kubernetes Infrastructure Layer**: Non-blocking `kubectl` execution gathering container logs, exit codes, deployment conditions, and warning events across target clusters (`Kind`, `Minikube`, `AWS EKS`).
-5. **🤖 AI Reasoning Engine Layer**: AWS Bedrock Runtime (`qwen.qwen3-coder-next`) acting as a Senior SRE Engineer to analyze evidence and output structured JSON fixes.
-6. **💾 Persistence & Audit Layer (AWS DynamoDB)**: Stores investigation audit logs (`K8sAgentInvestigations`) for tracking historical resolution times and recurring issues.
+### 🏛️ Architecture Layer Breakdown
+
+| Layer | Component | Core Responsibility | Key Technology |
+| :--- | :--- | :--- | :--- |
+| **1. UI & Access** | **Next.js 14 Dashboard** | Interactive tile cards to select clusters, view streaming SSE step bars, and copy fix commands. | Next.js 14, React, Tailwind CSS |
+| **2. Security** | **AWS Cognito** | Manages SRE Engineer authentication, OAuth 2.0 tokens, and local mock testing mode. | AWS Cognito User Pool, JWT Tokens |
+| **3. Core Engine** | **FastAPI Server** | Coordinates evidence collection, streams real-time SSE updates, and invokes AI reasoning pipeline. | FastAPI, Python 3.9+, Asyncio |
+| **4. Infrastructure** | **Kubectl Collector** | Non-blocking execution of `kubectl` commands with 8s timeouts to collect pods, error logs, and events. | Subprocess Exec, Kubectl CLI |
+| **5. AI Brain** | **AWS Bedrock Runtime** | SRE AI model (`qwen.qwen3-coder-next`) that analyzes evidence payloads and generates structured root cause diagnoses. | AWS Bedrock, Boto3 Converse API |
+| **6. Audit Storage** | **AWS DynamoDB** | Stores historical investigation reports with timestamps, confidence scores, and kubectl commands for post-mortem analysis. | AWS DynamoDB Table |
 
 ---
 
