@@ -10,38 +10,38 @@ Whether you are a **non-technical manager**, a **student beginner**, or a **seni
 
 ```mermaid
 graph TB
-    subgraph Client_Layer ["🌐 Client & UI Layer (User Interface)"]
-        Browser["💻 Web Browser (DevOps / SRE Engineer)"]
-        NextJS["⚡ Next.js 14 Frontend UI (Port 3000)\n• Cluster Tile Selector\n• Live SSE Progress Tracker\n• Root Cause & Fix Card"]
-        Browser <-->|HTTP / React UI| NextJS
+    subgraph Client_Layer ["🌐 Client & UI Layer"]
+        Browser["💻 Web Browser - DevOps / SRE Engineer"]
+        NextJS["⚡ Next.js 14 Frontend UI - Port 3000"]
+        Browser <--> NextJS
     end
 
     subgraph Auth_Layer ["🔐 Security & Identity Layer"]
-        Cognito["☁️ AWS Cognito User Pool\n• OAuth 2.0 / JWT Auth Tokens\n• Local Mock Mode vs Prod Auth"]
-        NextJS <-->|Bearer JWT Token| Cognito
+        Cognito["☁️ AWS Cognito User Pool"]
+        NextJS <--> Cognito
     end
 
-    subgraph API_Layer ["⚙️ Application & Service Layer"]
-        FastAPI["🚀 FastAPI Backend Server (Port 8000)\n• CORS & SSE Event Streaming\n• Route Handler & Agent Service"]
-        NextJS <-->|HTTP REST & SSE Stream| FastAPI
+    subgraph API_Layer ["⚙️ Application Layer"]
+        FastAPI["🚀 FastAPI Backend Server - Port 8000"]
+        NextJS <--> FastAPI
     end
 
     subgraph Collector_Layer ["🔎 Kubernetes Infrastructure Layer"]
-        Kubectl["☸️ Kubectl Evidence Collector\n• Pod Statuses & Exit Codes\n• Error Log Tailing\n• Warning Events & Services"]
-        FastAPI <-->|Subprocess Async Exec (8s Timeout)| Kubectl
-        Kubectl <-->|Read State| K8sClusters["☸️ K8s Clusters\n(Kind / Minikube / AWS EKS)"]
+        Kubectl["☸️ Kubectl Evidence Collector"]
+        FastAPI <--> Kubectl
+        Kubectl <--> K8sClusters["☸️ K8s Clusters - Kind / Minikube / AWS EKS"]
     end
 
     subgraph AI_Engine_Layer ["🤖 AI Reasoning Engine Layer"]
-        Bedrock["☁️ AWS Bedrock Runtime\n(Qwen3 Coder Next Model)\n• SRE Root Cause Reasoning\n• Step-by-Step Fix Generation"]
-        OpenRouter["🔄 OpenRouter / Rule Fallback\n• Secondary Failover Engine"]
-        FastAPI -->|Boto3 Converse API| Bedrock
-        FastAPI -.->|Failover Fallback| OpenRouter
+        Bedrock["☁️ AWS Bedrock Runtime - Qwen3 Coder Next"]
+        OpenRouter["🔄 OpenRouter / Rule Fallback Engine"]
+        FastAPI --> Bedrock
+        FastAPI -.-> OpenRouter
     end
 
-    subgraph Database_Layer ["💾 Persistence & Audit Layer"]
-        DynamoDB[("⚡ AWS DynamoDB Table\n(K8sAgentInvestigations)\n• Historical Audit Log\n• Root Causes & Timestamps")]
-        FastAPI -->|Boto3 DynamoDB Client| DynamoDB
+    subgraph Database_Layer ["💾 Persistence Layer"]
+        DynamoDB["⚡ AWS DynamoDB Table - K8sAgentInvestigations"]
+        FastAPI --> DynamoDB
     end
 
     style Client_Layer fill:#1e293b,stroke:#3b82f6,stroke-width:2px,color:#fff
@@ -105,8 +105,8 @@ flowchart TD
     UI -->|2. Request Live SSE Stream| FastAPI[⚙️ FastAPI Backend Server]
     
     subgraph K8s_Collector [🔎 1. Kubernetes Inspector]
-        FastAPI -->|3. Run fast kubectl commands| K8s[☸️ Kubernetes Cluster (Kind / Minikube / EKS)]
-        K8s -->|Gather Pod States, Error Logs, Events| Evidence[📋 Diagnostic Evidence Payload]
+        FastAPI -->|3. Run fast kubectl commands| K8s["☸️ Kubernetes Cluster - Kind / Minikube / EKS"]
+        K8s -->|Gather Pod States, Error Logs, Events| Evidence["📋 Diagnostic Evidence Payload"]
     end
 
     subgraph AI_Engine [🤖 2. AWS Bedrock AI Brain]
