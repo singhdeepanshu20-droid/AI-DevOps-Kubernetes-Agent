@@ -142,7 +142,89 @@ flowchart TD
 
 ---
 
-## 🐳 4. How to Run Locally with Docker & Docker Compose (Easiest Way!)
+## ☁️ 4. End-to-End AWS Production Setup & Deployment Guide
+
+Want to deploy this system completely on **AWS Production Infrastructure** just like we built it? Follow these step-by-step instructions:
+
+### Step 1: AWS Credentials & IAM Setup
+1. Create an AWS IAM User / Role with policy permissions:
+   - `AmazonBedrockFullAccess`
+   - `AmazonDynamoDBFullAccess`
+   - `AmazonEKSClusterPolicy`
+2. Configure AWS CLI on your system:
+   ```bash
+   aws configure
+   # AWS Access Key ID: YOUR_ACCESS_KEY
+   # AWS Secret Access Key: YOUR_SECRET_KEY
+   # Default region name: ap-southeast-2
+   ```
+
+---
+
+### Step 2: Request & Enable AWS Bedrock Model Access
+1. Open the **AWS Console** $\rightarrow$ Navigate to **AWS Bedrock**.
+2. Click **Model Access** in the left sidebar.
+3. Select **Qwen / Bedrock Models** (e.g. `qwen.qwen3-coder-next`) and click **Save Changes / Request Access**.
+4. Verify access by checking `AWS_BEDROCK_MODEL_ID=qwen.qwen3-coder-next` in `backend/.env`.
+
+---
+
+### Step 3: Create AWS DynamoDB History Table
+1. Open **AWS DynamoDB Console** $\rightarrow$ **Tables** $\rightarrow$ **Create Table**.
+   - **Table Name:** `K8sAgentInvestigations`
+   - **Partition Key:** `id` (String)
+   - **Table Class:** Standard
+2. Or initialize automatically using Python script:
+   ```bash
+   python backend/scripts/init_dynamodb.py
+   ```
+
+---
+
+### Step 4: Connect to AWS EKS Cluster (Elastic Kubernetes Service)
+1. Update your local `kubectl` kubeconfig to point to your live AWS EKS cluster:
+   ```bash
+   aws eks update-kubeconfig --region ap-southeast-2 --name eks-cluster
+   ```
+2. Verify node connectivity:
+   ```bash
+   kubectl get nodes
+   ```
+
+---
+
+### Step 5: AWS Cognito Production Authentication Setup
+1. Open **AWS Cognito Console** $\rightarrow$ **Create User Pool**.
+   - **User Pool Name:** `k8s-agent-user-pool`
+   - **App Client Name:** `k8s-agent-web-client`
+2. Enable **Cognito Hosted UI** and configure App Client OAuth settings.
+3. Set environment flag in `frontend/.env.local` to enable production authentication:
+   ```env
+   NEXT_PUBLIC_ENABLE_COGNITO=true
+   NEXT_PUBLIC_COGNITO_USER_POOL_ID=ap-southeast-2_xxxxxxxxx
+   NEXT_PUBLIC_COGNITO_CLIENT_ID=xxxxxxxxxxxxxxxxxxxxxxxxxx
+   ```
+
+---
+
+### Step 6: Deploy Backend Container to AWS ECR & AWS App Runner / ECS
+1. Create ECR Repository and Push Backend Image:
+   ```bash
+   aws ecr create-repository --repository-name k8s-agent-backend --region ap-southeast-2
+   docker build -t <aws_account_id>.dkr.ecr.ap-southeast-2.amazonaws.com/k8s-agent-backend:latest ./backend
+   docker push <aws_account_id>.dkr.ecr.ap-southeast-2.amazonaws.com/k8s-agent-backend:latest
+   ```
+2. Launch service via **AWS App Runner** or **AWS ECS Fargate**, passing the required AWS environment variables.
+
+---
+
+### Step 7: Deploy Frontend to AWS Amplify / Vercel
+1. Deploy `frontend` directory to AWS Amplify or Vercel.
+2. Set `NEXT_PUBLIC_API_BASE_URL` to your production backend URL (e.g. `https://api.yourdomain.com`).
+
+---
+
+## 🐳 5. How to Run Locally with Docker & Docker Compose (Easiest Way!)
 
 Want to run the entire app with **ONE single command** before deploying to AWS? Use Docker Compose!
 
@@ -175,7 +257,7 @@ That's it!
 
 ---
 
-## 🛠️ 5. How to Run Locally Without Docker (Python + Node.js)
+## 🛠️ 6. How to Run Locally Without Docker (Python + Node.js)
 
 If you prefer running Frontend and Backend manually in separate terminals:
 
@@ -202,7 +284,7 @@ Open `http://localhost:3000` in your browser.
 
 ---
 
-## ⚡ 6. How to Test Real Kubernetes Failure Scenarios
+## ⚡ 7. How to Test Real Kubernetes Failure Scenarios
 
 Want to test how the AI Agent detects real cluster failures? We have 4 pre-built test manifests!
 
