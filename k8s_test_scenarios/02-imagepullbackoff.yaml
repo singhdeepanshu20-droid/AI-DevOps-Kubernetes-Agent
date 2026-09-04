@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-imagepull
+  namespace: default
+  labels:
+    app: test-imagepull
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: test-imagepull
+  template:
+    metadata:
+      labels:
+        app: test-imagepull
+    spec:
+      containers:
+      - name: imagepull-container
+        image: nginx:nonexistent-tag-v9999
+        ports:
+        - containerPort: 80

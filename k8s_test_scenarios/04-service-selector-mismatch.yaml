@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-svc-deployment
+  namespace: default
+  labels:
+    app: actual-app-name
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: actual-app-name
+  template:
+    metadata:
+      labels:
+        app: actual-app-name
+    spec:
+      containers:
+      - name: web
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: test-mismatched-service
+  namespace: default
+spec:
+  type: ClusterIP
+  selector:
+    app: wrong-app-label-name
+  ports:
+  - port: 80
+    targetPort: 80

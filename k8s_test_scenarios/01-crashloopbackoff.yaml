@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-crashloop
+  namespace: default
+  labels:
+    app: test-crashloop
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: test-crashloop
+  template:
+    metadata:
+      labels:
+        app: test-crashloop
+    spec:
+      containers:
+      - name: crashloop-container
+        image: busybox:latest
+        command: ["sh", "-c", "echo 'Starting container...'; if [ -z \"$REQUIRED_DB_URL\" ]; then echo 'FATAL ERROR: REQUIRED_DB_URL environment variable is missing!'; exit 1; fi"]
