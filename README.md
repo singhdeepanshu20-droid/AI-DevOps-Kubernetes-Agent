@@ -101,21 +101,21 @@ Here is a visual map showing how data flows step-by-step:
 
 ```mermaid
 flowchart TD
-    User([👨‍💻 You / DevOps Engineer]) -->|1. Click 'Run Investigation'| UI[🖥️ Next.js 14 Frontend UI]
-    UI -->|2. Request Live SSE Stream| FastAPI[⚙️ FastAPI Backend Server]
+    User["👨‍💻 You - DevOps Engineer"] -->|1. Click Run Investigation| UI["🖥️ Next.js 14 Frontend UI"]
+    UI -->|2. Request Live SSE Stream| FastAPI["⚙️ FastAPI Backend Server"]
     
-    subgraph K8s_Collector [🔎 1. Kubernetes Inspector]
+    subgraph K8s_Collector ["🔎 1. Kubernetes Inspector"]
         FastAPI -->|3. Run fast kubectl commands| K8s["☸️ Kubernetes Cluster - Kind / Minikube / EKS"]
         K8s -->|Gather Pod States, Error Logs, Events| Evidence["📋 Diagnostic Evidence Payload"]
     end
 
-    subgraph AI_Engine [🤖 2. AWS Bedrock AI Brain]
-        Evidence -->|4. Send Evidence Payload| Bedrock[☁️ AWS Bedrock Qwen3 Coder Next]
-        Bedrock -->|Return JSON Diagnosis & Fix| AI_Result[💡 SRE Root Cause & Fix]
+    subgraph AI_Engine ["🤖 2. AWS Bedrock AI Brain"]
+        Evidence -->|4. Send Evidence Payload| Bedrock["☁️ AWS Bedrock Qwen3 Coder Next"]
+        Bedrock -->|Return JSON Diagnosis & Fix| AI_Result["💡 SRE Root Cause & Fix"]
     end
 
-    subgraph Storage [💾 3. AWS DynamoDB History]
-        AI_Result -->|5. Save Audit Record| DynamoDB[(⚡ AWS DynamoDB Table)]
+    subgraph Storage ["💾 3. AWS DynamoDB History"]
+        AI_Result -->|5. Save Audit Record| DynamoDB["⚡ AWS DynamoDB Table"]
     end
 
     AI_Result -->|6. Stream Realtime Updates| UI
